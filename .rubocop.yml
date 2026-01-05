@@ -1,0 +1,39 @@
+# sshkit-ec2instanceconnect RuboCop configuration
+# https://docs.rubocop.org/rubocop/cops.html
+#
+# Run with: `bin/rubocop`.
+
+plugins:
+  - rubocop-performance
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.3
+
+Gemspec/DevelopmentDependencies:
+  EnforcedStyle: gemspec
+
+Layout/LineLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Max: 4
+
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
