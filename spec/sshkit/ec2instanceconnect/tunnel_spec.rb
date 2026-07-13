@@ -26,6 +26,16 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
 
         expect(tunnel.instance_variable_get(:@pid)).to eq(fake_pid)
       end
+
+      context 'when the aws CLI is not installed' do
+        before do
+          allow(PTY).to receive(:spawn).and_raise(Errno::ENOENT)
+        end
+
+        it 'raises the underlying error' do
+          expect { tunnel.start }.to raise_error(Errno::ENOENT)
+        end
+      end
     end
 
     describe '#stop' do
