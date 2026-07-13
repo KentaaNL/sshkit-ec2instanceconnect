@@ -3,9 +3,9 @@
 require 'simplecov'
 
 SimpleCov.configure do
-  add_filter 'vendor/'
+  skip 'vendor/'
 
-  minimum_coverage 99
+  minimum_coverage 100
 end
 
 SimpleCov.start
