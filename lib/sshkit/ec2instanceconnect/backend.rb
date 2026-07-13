@@ -84,6 +84,9 @@ module SSHKit
       end
 
       def update_host_and_port(tunnel:)
+        host.properties[:original_hostname] ||= host.hostname
+        host.properties[:original_port] ||= host.port
+
         host.hostname = tunnel.host
         host.port = tunnel.port
       end

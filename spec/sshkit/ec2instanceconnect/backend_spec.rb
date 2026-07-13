@@ -116,6 +116,13 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
         expect(host.hostname).to eq('localhost')
         expect(host.port).to eq('9000')
       end
+
+      it 'stores the original hostname and port on host properties' do
+        backend.execute_command(command)
+
+        expect(properties[:original_hostname]).to eq('rspec-1234567890abcdef0')
+        expect(properties[:original_port]).to be_nil
+      end
     end
   end
 end

@@ -67,6 +67,8 @@ config.tunnel_enabled = true
 
 **Note**: Tunneling requires the AWS CLI (`aws ec2-instance-connect`) to be installed and configured.
 
+Since the host's `hostname`/`port` are overwritten to point at the local tunnel, the original values remain available on `host.properties[:original_hostname]` / `host.properties[:original_port]` for logging or diagnostics.
+
 ## IAM Policy
 
 Sending ephemeral SSH keys and opening tunnels require the correct IAM permissions.
