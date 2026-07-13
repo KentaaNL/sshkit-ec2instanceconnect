@@ -4,7 +4,19 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
   subject(:backend) { described_class.new(host) }
 
   let(:host) { SSHKit::Host.new(user: 'ec2-user', hostname: 'rspec-1234567890abcdef0') }
-  let(:properties) { { instance_id: 'rspec-1234567890abcdef0' } }
+  # Mimics Capistrano::Configuration::Server::Properties, which only exposes
+  # #fetch (returns nil for unknown keys, no raise) and #set.
+  let(:properties) do
+    { instance_id: 'rspec-1234567890abcdef0' }.tap do |props|
+      def props.fetch(key)
+        self[key]
+      end
+
+      def props.set(key, value)
+        self[key] = value
+      end
+    end
+  end
 
   let(:mocked_backend) { instance_double(SSHKit::Backend::Netssh, upload!: nil, download!: nil, execute_command: 'ok') }
 
@@ -121,6 +133,13 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
         backend.execute_command(command)
 
         expect(properties[:original_hostname]).to eq('rspec-1234567890abcdef0')
+        expect(properties[:original_port]).to be_nil
+      end
+
+      it 'does not overwrite the original port with the tunnel port on subsequent calls' do
+        backend.execute_command(command)
+        backend.execute_command(command)
+
         expect(properties[:original_port]).to be_nil
       end
     end

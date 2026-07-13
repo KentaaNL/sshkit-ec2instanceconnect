@@ -84,11 +84,19 @@ module SSHKit
       end
 
       def update_host_and_port(tunnel:)
-        host.properties[:original_hostname] ||= host.hostname
-        host.properties[:original_port] ||= host.port
+        set_host_property_once(:original_hostname, host.hostname)
+        set_host_property_once(:original_port, host.port)
 
         host.hostname = tunnel.host
         host.port = tunnel.port
+      end
+
+      # Sets a host property only if it hasn't been set before, so the original
+      # value is preserved. host.properties isn't a Hash, so use #keys instead of #key?.
+      def set_host_property_once(key, value)
+        return if host.properties.keys.include?(key) # rubocop:disable Performance/InefficientHashSearch
+
+        host.properties.set(key, value)
       end
 
       def refresh_ssh_key
