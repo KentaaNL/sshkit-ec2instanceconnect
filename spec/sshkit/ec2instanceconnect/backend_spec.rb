@@ -25,8 +25,8 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
     allow(SSHKit::Backend::Netssh).to receive(:new).with(host).and_return(mocked_backend)
 
     stub_request(:post, 'https://ec2-instance-connect.eu-west-1.amazonaws.com/')
-      .to_return(status: 200, body: { request_id: '12345',
-                                      success: true }.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: { request_id: '12345', success: true }.to_json,
+                 headers: { 'Content-Type' => 'application/json' })
   end
 
   describe '.configure' do
