@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sshkit-ec2instanceconnect (0.1.0)
+    sshkit-ec2instanceconnect (0.2.0)
       aws-sdk-ec2instanceconnect (~> 1.63)
       concurrent-ruby (~> 1.2)
       logger
