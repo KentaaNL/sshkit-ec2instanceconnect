@@ -142,6 +142,38 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
 
         expect(properties[:original_port]).to be_nil
       end
+
+      context 'when the tunnel port is already in use' do
+        def port_in_use
+          -> { raise SSHKit::EC2InstanceConnect::TunnelError, 'Tunnel exited before listening: [Errno 48] Address already in use' }
+        end
+
+        it 'retries with another port' do
+          allow(SSHKit::EC2InstanceConnect.config).to receive(:random_tunnel_port).and_return(8001, 8002)
+          allow(tunnel).to receive(:start).and_invoke(port_in_use, -> {})
+
+          backend.execute_command(command)
+
+          expect(SSHKit::EC2InstanceConnect::Tunnel).to have_received(:new).with(instance_id: 'rspec-1234567890abcdef0', port: 8001).ordered
+          expect(SSHKit::EC2InstanceConnect::Tunnel).to have_received(:new).with(instance_id: 'rspec-1234567890abcdef0', port: 8002).ordered
+        end
+
+        it 'gives up after the maximum number of attempts' do
+          allow(tunnel).to receive(:start).and_invoke(port_in_use)
+
+          expect { backend.execute_command(command) }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /Address already in use/)
+          expect(SSHKit::EC2InstanceConnect::Tunnel).to have_received(:new).exactly(described_class::TUNNEL_START_ATTEMPTS).times
+        end
+      end
+
+      context 'when the tunnel fails for another reason' do
+        it 'does not retry' do
+          allow(tunnel).to receive(:start).and_raise(SSHKit::EC2InstanceConnect::TunnelError, 'Tunnel exited before listening: An error occurred (AccessDeniedException)')
+
+          expect { backend.execute_command(command) }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /AccessDeniedException/)
+          expect(SSHKit::EC2InstanceConnect::Tunnel).to have_received(:new).once
+        end
+      end
     end
   end
 end

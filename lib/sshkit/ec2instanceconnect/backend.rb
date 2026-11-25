@@ -17,6 +17,9 @@ module SSHKit
       # so refresh them a bit earlier.
       EXPIRES_IN = 50
 
+      # Number of attempts to start a tunnel when the chosen port is already in use.
+      TUNNEL_START_ATTEMPTS = 3
+
       # Store SSH keys per instance with expiration.
       @ssh_keys = SSHKit::EC2InstanceConnect::TimedHash.new(expires_in: EXPIRES_IN)
 
@@ -73,13 +76,25 @@ module SSHKit
         end
       end
 
+      # Start a tunnel on a random local port, retrying with another port if it is already in use.
       def setup_tunnel
         logger.debug { "Setting up tunnel for instance #{instance_id}" }
 
-        Tunnel.new(instance_id: instance_id, port: random_tunnel_port).tap do |tunnel|
-          tunnel.start
+        attempts = 0
 
-          logger.debug { "Tunnel (#{tunnel}) started for instance #{instance_id}" }
+        begin
+          attempts += 1
+
+          Tunnel.new(instance_id: instance_id, port: random_tunnel_port).tap do |tunnel|
+            tunnel.start
+
+            logger.debug { "Tunnel (#{tunnel}) started for instance #{instance_id}" }
+          end
+        rescue TunnelError => e
+          raise unless e.message.include?('Address already in use') && attempts < TUNNEL_START_ATTEMPTS
+
+          logger.debug { "Tunnel port already in use for instance #{instance_id}, retrying with another port" }
+          retry
         end
       end
 
