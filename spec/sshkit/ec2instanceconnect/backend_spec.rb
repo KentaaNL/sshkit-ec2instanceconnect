@@ -109,7 +109,7 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
     end
 
     context 'with tunnel enabled' do
-      let(:tunnel) { instance_double(SSHKit::EC2InstanceConnect::Tunnel, host: 'localhost', port: '9000', start: nil) }
+      let(:tunnel) { instance_double(SSHKit::EC2InstanceConnect::Tunnel, host: '127.0.0.1', port: '9000', start: nil) }
 
       before do
         allow(SSHKit::EC2InstanceConnect.config).to receive(:tunnel_enabled).and_return(true)
@@ -125,7 +125,7 @@ RSpec.describe SSHKit::EC2InstanceConnect::Backend do
       it 'updates the host and port to the tunnel' do
         backend.execute_command(command)
 
-        expect(host.hostname).to eq('localhost')
+        expect(host.hostname).to eq('127.0.0.1')
         expect(host.port).to eq('9000')
       end
 

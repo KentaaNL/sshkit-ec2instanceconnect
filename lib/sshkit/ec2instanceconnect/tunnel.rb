@@ -13,7 +13,7 @@ module SSHKit
 
       attr_reader :host, :port
 
-      def initialize(instance_id:, host: 'localhost', port: '8000')
+      def initialize(instance_id:, host: '127.0.0.1', port: '8000')
         @instance_id = instance_id
         @host = host
         @port = port

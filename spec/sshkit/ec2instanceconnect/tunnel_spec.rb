@@ -4,7 +4,7 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
   subject(:tunnel) { described_class.new(instance_id: instance_id, host: host, port: port) }
 
   let(:instance_id) { 'rspec-1234567890' }
-  let(:host) { 'localhost' }
+  let(:host) { '127.0.0.1' }
   let(:port) { '2222' }
 
   describe 'process lifecycle' do
@@ -47,7 +47,7 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
         end
 
         it 'raises a TunnelError with the process output' do
-          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /exited before listening on localhost:2222: \[Errno 48\] Address already in use/)
+          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /exited before listening on 127\.0\.0\.1:2222: \[Errno 48\] Address already in use/)
         end
       end
 
@@ -65,7 +65,7 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
         end
 
         it 'stops the process and raises a TunnelError' do
-          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /did not start listening on localhost:2222 within 0.1s/)
+          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /did not start listening on 127\.0\.0\.1:2222 within 0.1s/)
           expect(Process).to have_received(:kill).with('TERM', fake_pid)
         end
       end
@@ -90,9 +90,15 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
     end
   end
 
+  describe '#host' do
+    it 'defaults to the IPv4 loopback address' do
+      expect(described_class.new(instance_id: instance_id).host).to eq('127.0.0.1')
+    end
+  end
+
   describe '#to_s' do
     it 'returns host:port' do
-      expect(tunnel.to_s).to eq('localhost:2222')
+      expect(tunnel.to_s).to eq('127.0.0.1:2222')
     end
   end
 end
