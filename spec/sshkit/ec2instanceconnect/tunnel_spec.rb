@@ -36,6 +36,39 @@ RSpec.describe SSHKit::EC2InstanceConnect::Tunnel do
           expect { tunnel.start }.to raise_error(Errno::ENOENT)
         end
       end
+
+      context 'when the tunnel process exits before listening' do
+        before do
+          allow(PTY).to receive(:spawn) do |_cmd, &block|
+            stdout = instance_double(IO)
+            allow(stdout).to receive(:each_line).and_yield("[Errno 48] Address already in use\n")
+            block.call(stdout, nil, fake_pid)
+          end
+        end
+
+        it 'raises a TunnelError with the process output' do
+          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /exited before listening on localhost:2222: \[Errno 48\] Address already in use/)
+        end
+      end
+
+      context 'when the tunnel process does not start listening in time' do
+        before do
+          stub_const('SSHKit::EC2InstanceConnect::Tunnel::START_TIMEOUT', 0.1)
+
+          killed = Thread::Queue.new
+          allow(Process).to receive(:kill) { killed << true }
+          allow(PTY).to receive(:spawn) do |_cmd, &block|
+            stdout = instance_double(IO)
+            allow(stdout).to receive(:each_line) { killed.pop }
+            block.call(stdout, nil, fake_pid)
+          end
+        end
+
+        it 'stops the process and raises a TunnelError' do
+          expect { tunnel.start }.to raise_error(SSHKit::EC2InstanceConnect::TunnelError, /did not start listening on localhost:2222 within 0.1s/)
+          expect(Process).to have_received(:kill).with('TERM', fake_pid)
+        end
+      end
     end
 
     describe '#stop' do

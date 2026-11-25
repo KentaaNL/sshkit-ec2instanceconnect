@@ -4,8 +4,13 @@ require 'pty'
 
 module SSHKit
   module EC2InstanceConnect
+    # Raised when the tunnel process exits or times out before listening for connections.
+    class TunnelError < StandardError; end
+
     # Manages a tunnel using the EC2 Instance Connect Endpoint Service, for secure SSH access to EC2 instances.
     class Tunnel
+      START_TIMEOUT = 30
+
       attr_reader :host, :port
 
       def initialize(instance_id:, host: 'localhost', port: '8000')
@@ -16,36 +21,36 @@ module SSHKit
 
       # Start the tunnel subprocess and wait until it is listening for connections.
       def start
-        mutex = Mutex.new
-        condition = ConditionVariable.new
+        queue = Thread::Queue.new
+        output = []
         ready = false
-        error = nil
 
         @thread = Thread.new do
           PTY.spawn(command) do |stdout, _stdin, pid|
             @pid = pid
 
+            # Keep draining stdout after startup so the PTY buffer doesn't fill up, but stop collecting output.
             stdout.each_line do |line|
-              next unless line.start_with?('Listening for connections')
+              next if ready
 
-              mutex.synchronize do
-                ready = true
-                condition.signal
-              end
+              output << line
+              ready = line.start_with?('Listening for connections')
+              queue << :ready if ready
             end
           rescue Errno::EIO
             # PTY closed — safe to ignore
           end
-        rescue Errno::ENOENT => e
-          mutex.synchronize do
-            error = e
-            condition.signal
-          end
+
+          queue << TunnelError.new("Tunnel for instance #{@instance_id} exited before listening on #{self}: #{output.join.strip}") unless ready
+        rescue SystemCallError => e
+          queue << e
         end
 
-        mutex.synchronize { condition.wait(mutex) until ready || error }
+        result = queue.pop(timeout: START_TIMEOUT)
+        return if result == :ready
 
-        raise error if error
+        stop
+        raise result || TunnelError.new("Tunnel for instance #{@instance_id} did not start listening on #{self} within #{START_TIMEOUT}s")
       end
 
       # Stop the tunnel process.
